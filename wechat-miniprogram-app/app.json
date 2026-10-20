@@ -1,0 +1,14 @@
+{
+  "pages": [
+    "pages/game/game"
+  ],
+  "window": {
+    "navigationBarTitleText": "清凉校园 · 热浪行动",
+    "navigationBarBackgroundColor": "#e4f1f7",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#e4f1f7",
+    "backgroundTextStyle": "dark"
+  },
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

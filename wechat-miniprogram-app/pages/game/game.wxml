@@ -1,0 +1,450 @@
+<!-- 清凉校园 · 热浪行动 —— 原生游戏页（横屏） -->
+<view class="page">
+  <!-- ============ 顶栏：时间 + 标题（右上给微信胶囊留空） ============ -->
+  <view class="topbar">
+    <text class="tb-time">{{hourText}}</text>
+    <text class="tb-title">热浪行动</text>
+    <text class="tb-weather">{{weatherIcon}}</text>
+  </view>
+
+  <!-- ============ 品牌行：标志 + 数据徽章 ============ -->
+  <view class="brandbar">
+    <view class="brand" bindtap="onMenuOpen">
+      <image class="brand-logo" src="/assets/logo-mark.png" mode="aspectFit"></image>
+      <view class="brand-text">
+        <text class="brand-name">清凉一夏</text>
+        <text class="brand-sub">热浪行动 · 校园微气候策略</text>
+      </view>
+    </view>
+    <view class="hud-stats">
+      <view class="hud-chip">💰 预算 {{budgetLeft}} 万</view>
+      <view class="hud-chip hot">高暴露 {{statRows[0].value}} 人</view>
+      <view class="hud-chip">⚠ 脆弱 {{statRows[1].value}} 人</view>
+      <view class="hud-chip">💧 水源 {{waterLeft}}</view>
+    </view>
+    <view class="hud-btn" bindtap="onMenuOpen">关卡 ▾</view>
+  </view>
+
+  <!-- ============ 主体三栏 ============ -->
+  <view class="stage">
+    <!-- —— 左栏 —— -->
+    <scroll-view class="col left col-left" scroll-y enhanced show-scrollbar="{{false}}" bindscroll="onTutScroll">
+      <view class="card round-card">
+        <view class="round-hour">{{hourText}}</view>
+        <view class="round-level">第 {{levelIndex}} 关 · {{levelName}}</view>
+        <button class="btn primary" bindtap="onAdvance">{{advanceLabel}}</button>
+        <view class="note">改造可以随时放置，没有回合限制；推进时间只是看看人群和热力怎么变。</view>
+      </view>
+
+      <view class="card card-stat">
+        <view class="card-title">当前态势 <text class="card-title-time">{{hourText}}</text></view>
+        <view class="stat-grid">
+          <view class="stat-cell" wx:for="{{statRows}}" wx:key="key">
+            <text class="cell-name">{{item.name}}</text>
+            <view class="cell-val">
+              <text class="cell-num">{{item.value}}</text>
+              <text class="cell-unit">{{item.unit}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="extra-toggle" bindtap="onExtraToggle">{{extraOpen ? '收起其他指标 ▴' : '其他指标 ▾'}}</view>
+        <view class="stat-grid" wx:if="{{extraOpen}}">
+          <view class="stat-cell" wx:for="{{extraRows}}" wx:key="key">
+            <text class="cell-name">{{item.name}}</text>
+            <view class="cell-val">
+              <text class="cell-num small-num">{{item.value}}</text>
+              <text class="cell-unit">{{item.unit}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <button class="btn ghost btn-advice" bindtap="onAdviceOpen">💡 看看参谋建议</button>
+      <view class="row-btns">
+        <button class="btn small auto auto-plan-btn" bindtap="onAutoPlan">✦ 自动布置方案</button>
+      </view>
+
+      <view class="card card-layers">
+        <view class="card-title">图层</view>
+        <view class="chip-row row-layers">
+          <view class="layer-chip {{layers[item.id] ? 'on' : ''}}" wx:for="{{layerList}}" wx:key="id" data-id="{{item.id}}" bindtap="onLayerToggle">
+            <text class="layer-ico">{{item.icon}}</text>
+            <text>{{item.name}}</text>
+          </view>
+        </view>
+        <view class="heat-band">
+          <view class="band-bar"></view>
+          <view class="band-labels">
+            <text>20 凉爽</text>
+            <text>地表热指数（原型估算）</text>
+            <text>100 极热</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- —— 地图 —— -->
+    <view class="map-wrap">
+      <canvas id="map" type="2d" class="map-canvas" bindtouchstart="onCanvasTouchStart" bindtouchmove="onCanvasTouchMove" bindtouchend="onCanvasTouchEnd" bindtouchcancel="onCanvasTouchEnd" bindtap="onCanvasTap"></canvas>
+
+      <!-- 双指缩放手势提示：常驻地图右上角（层级低于所有弹窗，弹窗打开时被盖住；
+           选中工具将要放置时让位给「正在放置」提示，避免两条横幅叠在一起） -->
+      <view class="zoom-tip" wx:if="{{!placingName}}">双指向外撑开放大、向内收拢缩小</view>
+
+      <view class="focus-hint" wx:if="{{focusText}}">{{focusText}}</view>
+      <view class="placing-hint" wx:if="{{placingName}}">
+        <view class="dot"></view>
+        <text>正在放置：{{placingName}}｜点一下预览、再点一下放置；再点工具可取消</text>
+      </view>
+
+      <!-- 效果预览卡 -->
+      <view class="preview-card" wx:if="{{preview}}">
+        <block wx:if="{{preview.ok}}">
+          <view class="pv-title">{{preview.toolName}} → {{preview.tileName}}</view>
+          <view class="pv-row" wx:for="{{preview.rows}}" wx:key="name">
+            <text class="pv-name">{{item.name}}</text>
+            <text class="pv-val {{item.cls}}">{{item.text}}</text>
+          </view>
+          <view class="pv-cost">花费 {{preview.cost}} 万 · 半径 {{preview.radius}} 格</view>
+        </block>
+        <view class="pv-warn" wx:else>⚠ {{preview.reason}}</view>
+      </view>
+
+      <!-- 操作反馈卡 -->
+      <view class="feedback-card tone-{{feedback.tone}}" wx:if="{{feedback}}">
+        <view class="fb-title">{{feedback.icon}} {{feedback.title}}</view>
+        <view class="fb-detail">{{feedback.detail}}</view>
+        <view class="fb-next" wx:if="{{feedback.next}}">{{feedback.next}}</view>
+      </view>
+
+      <!-- 视角控件 -->
+      <view class="view-controls">
+        <view class="vc-btn" data-d="-15" bindtap="onRotateStep">↺</view>
+        <slider class="vc-slider" min="0" max="360" value="{{rotation}}" activeColor="#8b7cf0" backgroundColor="#dfeaf2" block-size="16" bindchanging="onRotation" bindchange="onRotation"></slider>
+        <view class="vc-angle">{{rotation}}°</view>
+        <view class="vc-btn" data-d="15" bindtap="onRotateStep">↻</view>
+        <view class="vc-btn" bindtap="onRotateReset">⌂</view>
+      </view>
+
+      <view class="toast" wx:if="{{toast}}">{{toast}}</view>
+    </view>
+
+    <!-- —— 右栏 —— -->
+    <scroll-view class="col right col-right" scroll-y enhanced show-scrollbar="{{false}}" bindscroll="onTutScroll">
+      <view class="card">
+        <view class="card-title">任务目标</view>
+        <view class="goal" wx:for="{{goals}}" wx:key="label">
+          <view class="goal-head">
+            <text class="goal-mark {{item.ok ? 'ok' : ''}}">{{item.ok ? '✓' : '○'}}</text>
+            <text class="goal-label {{item.core ? 'core' : ''}}">{{item.label}}</text>
+            <text class="goal-core" wx:if="{{item.core}}">核心</text>
+          </view>
+          <view class="goal-meta">
+            <text>{{item.hour}}</text>
+            <text>当前 {{item.current}} / 目标 {{item.target}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="card" wx:if="{{pinned}}">
+        <view class="card-title">地块详情 · {{pinned.name}}</view>
+        <view class="detail-row"><text>类型</text><text>{{pinned.type}}</text></view>
+        <view class="detail-row"><text>热指数</text><text>{{pinned.heat}}</text></view>
+        <view class="detail-row"><text>户外暴露</text><text>{{pinned.people}} 人</text></view>
+        <view class="detail-groups" wx:if="{{pinned.groups.length}}">
+          <text wx:for="{{pinned.groups}}" wx:key="name" class="group-chip">{{item.name}} {{item.share}}%</text>
+        </view>
+        <view class="detail-row"><text>已建设施</text><text>{{pinned.facilityText || '暂无'}}</text></view>
+        <view class="detail-tip" wx:if="{{pinned.venue}}">📚 点此地块可设置纳凉开放时段</view>
+      </view>
+      <view class="card" wx:else>
+        <view class="card-title">地块详情</view>
+        <view class="detail-tip">点击地块查看地块的热指数、人群构成与已建设施</view>
+      </view>
+
+      <view class="card">
+        <view class="card-title">决策记录</view>
+        <view class="log-row" wx:for="{{log}}" wx:key="text">
+          <text class="log-icon">{{item.icon}}</text>
+          <text class="log-text">{{item.text}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- ============ 底部工具坞：拆除 | 工具 × 8 | 撤销 ============ -->
+  <view class="dock">
+    <view class="dock-side dock-remove {{removeMode ? 'on' : ''}}" bindtap="onRemoveToggle">
+      <text class="dock-ico">🧹</text>
+      <text class="dock-txt">拆除</text>
+    </view>
+    <view class="dock-tools">
+      <view
+        class="tool {{item.selected ? 'sel' : ''}} {{item.unlocked ? '' : 'locked'}} {{item.unlocked && !item.affordable ? 'poor' : ''}}"
+        wx:for="{{tools}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onToolTap"
+      >
+        <image class="tool-ico" src="/assets/tool-{{item.id}}.png" mode="aspectFit"></image>
+        <text class="tool-name">{{item.name}}</text>
+        <text class="tool-meta">{{item.cost}} 万 · R{{item.radius}}</text>
+        <text class="tool-lock" wx:if="{{!item.unlocked}}">第 {{item.unlockAt}} 关解锁</text>
+      </view>
+    </view>
+    <view class="dock-side dock-undo {{canUndo ? '' : 'disabled'}}" bindtap="onUndo">
+      <text class="dock-ico">↩</text>
+      <text class="dock-txt">撤销</text>
+    </view>
+  </view>
+
+  <!-- ============ 关卡简报（按钮固定在底部，打开即见） ============ -->
+  <view class="modal-mask" wx:if="{{introOpen}}">
+    <view class="modal intro">
+      <scroll-view class="intro-scroll" scroll-y>
+      <view class="intro-head">
+        <image class="intro-logo" src="/assets/logo-mark.png" mode="aspectFit"></image>
+        <view class="intro-head-text">
+          <text class="intro-brand">清凉一夏 · 热浪行动</text>
+          <text class="intro-sub">校园微气候改善决策游戏 · 为最需要的人降温</text>
+        </view>
+      </view>
+
+      <view class="intro-title-row">
+        <view class="intro-title-left">
+          <text class="intro-level">第 {{intro.index}} 关 / 5</text>
+          <view class="intro-name">{{intro.name}}</view>
+          <view class="intro-tagline">{{intro.tagline}}</view>
+        </view>
+        <view class="intro-weather">
+          <text class="weather-icon">{{intro.weatherIcon}}</text>
+          <view class="weather-text">
+            <text class="w-name">{{intro.weatherName}}</text>
+            <text class="w-note">{{intro.weatherNote}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="intro-story">{{intro.story}}</view>
+
+      <view class="intro-boxes">
+        <view class="intro-box box-res">
+          <view class="box-title">本关资源</view>
+          <view class="res-row"><text class="res-ico">💰</text><text class="res-label">预算</text><text class="res-val">{{intro.budget}} 万</text></view>
+          <view class="res-row"><text class="res-ico">💧</text><text class="res-label">水量</text><text class="res-val">{{intro.water}} 单位</text></view>
+          <view class="res-row"><text class="res-ico">⏰</text><text class="res-label">验收时刻</text><text class="res-val">{{intro.hours}}</text></view>
+        </view>
+        <view class="intro-box box-unlock">
+          <view class="box-title">解锁奖励</view>
+          <view class="unlock-chips">
+            <view class="unlock-chip" wx:for="{{intro.unlock}}" wx:key="id">
+              <image class="unlock-ico" src="/assets/tool-{{item.id}}.png" mode="aspectFit"></image>
+              <text>{{item.name}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="intro-goals">
+        <view class="goals-head">
+          <text class="goals-title">🎯 验收目标</text>
+          <view class="goals-legend">
+            <text class="dot core-dot">●</text><text class="lg-txt">核心目标</text>
+            <text class="dot chal-dot">●</text><text class="lg-txt">挑战目标</text>
+          </view>
+        </view>
+        <view class="intro-goal" wx:for="{{intro.goals}}" wx:key="label">
+          <text class="goal-dot {{item.core ? 'core' : ''}}">●</text>
+          <text>{{item.label}}</text>
+        </view>
+      </view>
+
+      </scroll-view>
+      <button class="btn primary wide" bindtap="onEnterLevel">进入处置 · 开始规划</button>
+    </view>
+  </view>
+
+  <!-- ============ 现场事件 ============ -->
+  <view class="modal-mask" wx:if="{{eventOpen}}">
+    <view class="modal event">
+      <view class="event-icon">{{event.icon}}</view>
+      <view class="event-title">{{event.title}}</view>
+      <view class="event-body">{{event.body}}</view>
+      <view class="event-prompt">{{event.prompt}}</view>
+      <button class="btn choice" wx:for="{{event.choices}}" wx:key="id" data-id="{{item.id}}" bindtap="onChoose">
+        <text class="choice-label">{{item.label}}</text>
+        <text class="choice-detail">{{item.detail}}</text>
+      </button>
+    </view>
+  </view>
+
+  <!-- ============ 参谋建议 ============ -->
+  <view class="modal-mask" wx:if="{{adviceOpen}}">
+    <view class="modal advice-modal">
+      <!-- 建议清单可能很长：内容区滚动，底部按钮固定可见 -->
+      <scroll-view class="advice-scroll" scroll-y style="height:{{adviceScrollH}}px;">
+        <view class="venue-title">💡 推荐点位</view>
+        <view class="venue-tip">本地规则推理 · 非大模型生成。依据当前时刻的人群分布与地表热指数，按「热暴露下降 + 脆弱群体改善 + 舒适度提升 ÷ 造价」排序。</view>
+        <view class="venue-tip" wx:if="{{!adviceList.length}}">当前时刻已没有明显更优的地块了，可以推进时间，或换一种思路。</view>
+        <view class="advice-item" wx:for="{{adviceList}}" wx:key="idx">
+          <view class="advice-head">
+            <text class="advice-rank">{{item.rank}}</text>
+            <text class="advice-tool">{{item.toolName}}</text>
+            <text class="advice-cost">{{item.cost}} 万</text>
+          </view>
+          <view class="advice-loc">📍 {{item.tileName}}</view>
+          <view class="advice-reason">{{item.reason}}</view>
+          <button class="btn primary small advice-pick" data-idx="{{item.idx}}" bindtap="onAdvicePick">在地图上标出并采用</button>
+        </view>
+      </scroll-view>
+      <view class="result-actions">
+        <button class="btn ghost" bindtap="onAdviceClose">返回</button>
+        <button class="btn primary" bindtap="onAdviceAutoPlan">✦ 自动布置方案</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 结算复盘 ============ -->
+  <!-- ============ 结算复盘（对齐 H5 版版式） ============ -->
+  <view class="modal-mask" wx:if="{{resultOpen}}">
+    <view class="modal result">
+      <scroll-view class="result-scroll" scroll-y>
+      <view class="stars">
+        <text class="star {{result.stars >= 1 ? 'filled' : ''}}">★</text>
+        <text class="star {{result.stars >= 2 ? 'filled' : ''}}">★</text>
+        <text class="star {{result.stars >= 3 ? 'filled' : ''}}">★</text>
+      </view>
+      <view class="result-headline">{{result.headline}}</view>
+      <view class="result-detail">{{result.detail}}</view>
+      <view class="result-score">{{result.scoreText}}</view>
+      <view class="result-rows" wx:if="{{!result.sandbox}}">
+        <view class="result-row {{item.ok ? 'ok' : 'fail'}}" wx:for="{{result.rows}}" wx:key="label">
+          <text class="result-mark">{{item.ok ? '✓' : '✗'}}</text>
+          <text class="result-label">{{item.label}}</text>
+          <text class="result-val">{{item.right}}</text>
+        </view>
+      </view>
+      <view class="result-lesson">💡 {{result.lesson}}</view>
+      <view class="result-encourage" wx:if="{{!result.canAdvance}}">💪 还差一点，先别急着下一关！点「重做本关」回到地图，再按「✦ 自动布置方案」试试——它会按任务目标一次铺好整套方案，拿到 3 星就能进入下一关。</view>
+      </scroll-view>
+      <view class="result-actions">
+        <button class="btn ghost" bindtap="onResultRedo">重做本关</button>
+        <button class="btn ghost" bindtap="onResultPlan">查看行动清单</button>
+        <button class="btn primary" bindtap="onResultNext" disabled="{{!result.canAdvance}}" wx:if="{{result.nextName}}">进入下一关 →</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 场馆纳凉设置（对齐 H5 版版式） ============ -->
+  <view class="modal-mask" wx:if="{{venueOpen}}">
+    <view class="modal venue">
+      <view class="venue-head">
+        <view class="venue-icon">📖</view>
+        <view class="venue-head-text">
+          <text class="venue-kicker">场馆设置</text>
+          <view class="venue-name">{{venueName}}</view>
+          <view class="venue-sub">把室内空间变成高温时段的临时纳凉点</view>
+        </view>
+      </view>
+      <view class="venue-note">开放后，场馆周边会获得舒适度与遮阴加成。你可以按人流和天气选择时段。</view>
+      <view class="venue-hours">
+        <view class="hour-chip {{item.on ? 'on' : ''}}" wx:for="{{allHours}}" wx:key="hour" data-hour="{{item.hour}}" bindtap="onVenueToggleHour">
+          <text class="hour-time">{{item.hour}}:00</text>
+          <text class="hour-tag">{{item.tag}}</text>
+        </view>
+      </view>
+      <view class="result-actions venue-actions">
+        <button class="btn ghost" bindtap="onVenueClose">暂不设置</button>
+        <button class="btn primary" bindtap="onVenueSave" disabled="{{!venueCanSave}}">保存开放时段</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 关卡选择 ============ -->
+  <view class="modal-mask" wx:if="{{menuOpen}}" bindtap="onMenuClose">
+    <view class="modal menu" catchtap="noop">
+      <view class="menu-title">选择关卡</view>
+      <view class="menu-item {{item.current ? 'cur' : ''}} {{item.locked ? 'locked' : ''}}" wx:for="{{menuLevels}}" wx:key="id" data-id="{{item.id}}" bindtap="onMenuPick">
+        <text>第 {{item.index}} 关 · {{item.name}}</text>
+        <text class="menu-cur" wx:if="{{item.locked}}">🔒 先通关上一关</text>
+        <text class="menu-cur" wx:elif="{{item.current}}">进行中</text>
+      </view>
+      <view class="menu-item" bindtap="onPlanOpen">
+        <text>📋 行动清单</text>
+        <text class="menu-cur">打印 / 导出 PDF</text>
+      </view>
+      <view class="menu-item" bindtap="onSoundToggle">
+        <text>🔊 音效</text>
+        <text class="menu-cur">{{soundOn ? '开' : '关'}}</text>
+      </view>
+      <view class="menu-item" bindtap="onTutReplay">
+        <text>🎓 重播新手引导</text>
+        <text class="menu-cur">教程</text>
+      </view>
+      <view class="menu-tip">每关保留各自的推演进度；切关不会清空已放下的改造。</view>
+    </view>
+  </view>
+
+  <!-- ============ 行动清单（可打印 / 导出 PDF） ============ -->
+  <view class="modal-mask" wx:if="{{planOpen}}">
+    <scroll-view class="modal plan-modal" scroll-y>
+      <view class="venue-head">
+        <view class="venue-head-text">
+          <text class="venue-kicker">行动清单 · 可打印或截图提交给后勤</text>
+          <view class="venue-name">清凉改造行动清单</view>
+          <view class="venue-sub">第 {{levelIndex}} 关 · {{levelName}}｜{{hourText}}</view>
+        </view>
+      </view>
+      <view class="stat-grid plan-grid">
+        <view class="stat-cell" wx:for="{{planStats}}" wx:key="label">
+          <text class="cell-name">{{item.label}}</text>
+          <view class="cell-val">
+            <text class="cell-num small-num">{{item.value}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="venue-note">{{planHeadline}}</view>
+      <view class="plan-section">改造点位</view>
+      <view class="plan-muted" wx:if="{{!planGroups.length}}">还没有任何改造。回到地图，先从「又热又有人」的地块开始。</view>
+      <view class="plan-group" wx:for="{{planGroups}}" wx:key="toolName">
+        <view class="plan-group-head">
+          <text class="plan-tool-name">{{item.toolName}}</text>
+          <text class="plan-tool-meta">{{item.meta}}</text>
+        </view>
+        <view class="detail-groups">
+          <text class="group-chip" wx:for="{{item.locs}}" wx:for-item="loc" wx:key="*this">{{loc}}</text>
+        </view>
+        <view class="plan-muted">作用：{{item.issue}}。注意：{{item.caveat}}</view>
+      </view>
+      <view class="plan-section">仍需重点关注的地点</view>
+      <view class="plan-muted" wx:if="{{!planHot.length}}">当前没有高暴露地块，注意维持养护与补水。</view>
+      <view class="plan-hot" wx:for="{{planHot}}" wx:key="name">• {{item.name}}　热指数 {{item.heat}}，户外约 {{item.pop}} 人</view>
+      <view class="result-actions venue-actions">
+        <button class="btn ghost" bindtap="onPlanClose">返回推演</button>
+        <button class="btn primary" bindtap="onExportPdf">打印 / 导出 PDF</button>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 导出 PDF 用的离屏画布（A4 竖版 1240×1754） -->
+  <canvas type="2d" id="pdfcanvas" class="pdf-canvas"></canvas>
+
+  <!-- ============ 新手引导浮层（盖在一切之上） ============ -->
+  <block wx:if="{{tut}}">
+    <view class="tut-dim full" wx:if="{{tutDimFull}}"></view>
+    <view class="tut-highlight shape-{{tutShape}}" wx:if="{{tutHiStyle}}" style="{{tutHiStyle}}"></view>
+    <view class="tut-bubble" style="{{tutBubbleStyle}}">
+      <text class="tut-title">{{tut.title}}</text>
+      <text class="tut-body" wx:for="{{tut.lines}}" wx:key="*this">{{item}}</text>
+      <view class="tut-actions">
+        <text class="tut-skip" bindtap="onTutSkip">跳过引导</text>
+        <text class="tut-step-no">{{tut.idxText}}</text>
+        <view class="tut-nav">
+          <view class="ghost-btn" bindtap="onTutPrev">‹</view>
+          <view class="primary-btn tut-next" bindtap="onTutNext">{{tut.nextLabel}}</view>
+        </view>
+      </view>
+      <text class="tut-tip" wx:if="{{tut.tip}}">{{tut.tip}}</text>
+    </view>
+  </block>
+</view>

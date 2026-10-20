@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+.DS_Store
+*.tsbuildinfo
+node_modules/.tmp/
+docs/screenshots/
+test-results/
+playwright-report/
+wechat-miniprogram-app/project.private.config.json

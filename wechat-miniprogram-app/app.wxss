@@ -1,0 +1,7 @@
+/* 清凉校园 · 热浪行动 —— 全局样式（原生游戏页，横屏） */
+page {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #e4f1f7;
+}

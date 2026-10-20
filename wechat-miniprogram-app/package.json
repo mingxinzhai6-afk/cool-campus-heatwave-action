@@ -1,0 +1,6 @@
+{
+  "name": "qingliang-campus-miniprogram",
+  "private": true,
+  "type": "commonjs",
+  "description": "清凉校园·热浪行动 微信小程序（原生版）：core/ 由主项目 tsc -p tsconfig.mp.json 编译生成，请勿手改"
+}

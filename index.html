@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e4f1f7" />
+    <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <meta
+      name="description"
+      content="清凉一夏 · 热浪行动 —— 蓝白夏日校园微气候改善决策游戏。等轴 2.5D 推演，为最需要的人降温。"
+    />
+    <title>清凉一夏 · 热浪行动｜校园微气候决策游戏</title>
+    <script>
+      // 直接双击源码入口（file://）时，转到随包提供的免安装版
+      if (location.protocol === 'file:') location.replace('portable/index.html');
+    </script>
+  </head>
+  <body>
+    <div id="root">
+      <noscript>本作品需要启用 JavaScript 才能运行。</noscript>
+    </div>
+    <script>
+      // 启动兜底：任何模块加载错误都显示在页面上，避免出现一片空白。
+      (function () {
+        function show(msg) {
+          var root = document.getElementById('root');
+          if (!root || root.childElementCount > 0) return;
+          root.innerHTML =
+            '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;' +
+            'font-family:system-ui,sans-serif;color:#ece9ff">' +
+            '<div style="max-width:640px;background:rgba(40,34,78,.9);border:1px solid rgba(160,150,240,.35);' +
+            'border-radius:16px;padding:24px">' +
+            '<h1 style="margin:0 0 10px;font-size:20px">页面启动失败</h1>' +
+            '<p style="color:#a49dd4;line-height:1.7">' +
+            '这通常是开发服务器状态过期，或浏览器缓存了旧的模块。请先<strong>硬刷新（Ctrl+Shift+R）</strong>；' +
+            '若仍失败，停止并重新运行 <code>npm run dev</code>。错误详情如下：</p>' +
+            '<pre style="white-space:pre-wrap;background:#0b0818;padding:12px;border-radius:10px;' +
+            'color:#ffb4b4;font-size:12px;overflow:auto">' + msg + '</pre>' +
+            '</div></div>';
+        }
+        window.addEventListener('error', function (e) {
+          show((e && (e.message || '')) + (e && e.filename ? '\n' + e.filename + ':' + e.lineno : ''));
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+          show(String((e && e.reason && (e.reason.stack || e.reason.message)) || e.reason || '未知错误'));
+        });
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

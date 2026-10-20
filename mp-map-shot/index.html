@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>mp map shot</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #cfe6f2; }
+  #wrap { padding: 0; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<script src="./bundle.js"></script>
+<script>
+  const qs = new URLSearchParams(location.search);
+  const level = qs.get('level') || 'l1';
+  const rot = Number(qs.get('rot') || 0);
+  const w = Number(qs.get('w') || 900);
+  const h = Number(qs.get('h') || 560);
+  const zoom = Number(qs.get('zoom') || 1);
+  const r = window.renderShot(document.getElementById('cv'), level, rot, w, h, zoom);
+  window.__done = r + ' ' + level + ' ' + w + 'x' + h;
+  document.title = 'SHOT ' + window.__done;
+</script>
+</body>
+</html>

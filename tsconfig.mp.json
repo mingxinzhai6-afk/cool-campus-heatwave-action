@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "rootDir": "src",
+    "outDir": "wechat-miniprogram-app/core",
+    "lib": ["ES2018"],
+    "types": [],
+    "removeComments": false
+  },
+  "include": [
+    "src/lib/iso.ts",
+    "src/lib/engine.ts",
+    "src/lib/feedback.ts",
+    "src/data/campus.ts",
+    "src/data/groups.ts",
+    "src/data/tools.ts",
+    "src/data/levels.ts",
+    "src/data/tutorial.ts"
+  ]
+}
